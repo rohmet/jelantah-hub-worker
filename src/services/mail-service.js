@@ -1,24 +1,42 @@
-const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: process.env.SMTP_PORT == 465, // true for 465, false for other ports
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+const BREVO_API_KEY = process.env.BREVO_API_KEY || process.env.SMTP_PASS;
+const SENDER_EMAIL = process.env.SENDER_EMAIL || 'hubjelantah@gmail.com';
 
 const mailService = {
+    async sendEmailViaBrevo(payload) {
+        try {
+            const response = await fetch(BREVO_API_URL, {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'api-key': BREVO_API_KEY,
+                    'content-type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Brevo API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log(`[v] Email sent successfully via Brevo API:`, data.messageId || data);
+            return data;
+        } catch (error) {
+            console.error(`[x] Failed to send email via Brevo API:`, error.message);
+            throw error;
+        }
+    },
+
     async sendWithdrawalSuccessEmail(toEmail, amount, disbursementId) {
-        const mailOptions = {
-            from: `"Jelantah Hub" <${process.env.SENDER_EMAIL || process.env.SMTP_USER}>`,
-            to: toEmail,
+        const payload = {
+            sender: { name: 'Jelantah Hub', email: SENDER_EMAIL },
+            to: [{ email: toEmail }],
             subject: 'Withdrawal Berhasil - Jelantah Hub',
-            text: `Halo, penarikan dana Anda sebesar Rp${amount.toLocaleString('id-ID')} dengan ID Disbursement ${disbursementId} telah berhasil diproses. Terima kasih telah berkontribusi!`,
-            html: `
+            htmlContent: `
                 <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
                     <h2 style="color: #2e7d32;">Withdrawal Berhasil!</h2>
                     <p>Halo,</p>
@@ -37,26 +55,17 @@ const mailService = {
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
                     <p style="font-size: 12px; color: #777;">Ini adalah email otomatis, mohon tidak membalas email ini.</p>
                 </div>
-            `,
+            `
         };
-
-        try {
-            const info = await transporter.sendMail(mailOptions);
-            console.log(`[v] Email sent to ${toEmail}: ${info.messageId}`);
-            return info;
-        } catch (error) {
-            console.error(`[x] Failed to send email to ${toEmail}:`, error.message);
-            throw error;
-        }
+        return this.sendEmailViaBrevo(payload);
     },
 
     async sendWithdrawalApprovedEmail(toEmail, amount, disbursementId, metodePembayaran, nomorRekening) {
-        const mailOptions = {
-            from: `"Jelantah Hub" <${process.env.SENDER_EMAIL || process.env.SMTP_USER}>`,
-            to: toEmail,
+        const payload = {
+            sender: { name: 'Jelantah Hub', email: SENDER_EMAIL },
+            to: [{ email: toEmail }],
             subject: 'Withdrawal Disetujui - Jelantah Hub',
-            text: `Halo, penarikan dana Anda sebesar Rp${amount.toLocaleString('id-ID')} dengan ID Disbursement ${disbursementId} telah disetujui dan sedang diproses ke ${metodePembayaran} (${nomorRekening}).`,
-            html: `
+            htmlContent: `
                 <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
                     <h2 style="color: #0288d1;">Withdrawal Disetujui & Diproses</h2>
                     <p>Halo,</p>
@@ -83,26 +92,17 @@ const mailService = {
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
                     <p style="font-size: 12px; color: #777;">Ini adalah email otomatis, mohon tidak membalas email ini.</p>
                 </div>
-            `,
+            `
         };
-
-        try {
-            const info = await transporter.sendMail(mailOptions);
-            console.log(`[v] Approval email sent to ${toEmail}: ${info.messageId}`);
-            return info;
-        } catch (error) {
-            console.error(`[x] Failed to send approval email to ${toEmail}:`, error.message);
-            throw error;
-        }
+        return this.sendEmailViaBrevo(payload);
     },
 
     async sendWithdrawalFailedEmail(toEmail, amount, disbursementId, failureCode) {
-        const mailOptions = {
-            from: `"Jelantah Hub" <${process.env.SENDER_EMAIL || process.env.SMTP_USER}>`,
-            to: toEmail,
+        const payload = {
+            sender: { name: 'Jelantah Hub', email: SENDER_EMAIL },
+            to: [{ email: toEmail }],
             subject: 'Withdrawal Gagal - Jelantah Hub',
-            text: `Halo, penarikan dana Anda sebesar Rp${amount.toLocaleString('id-ID')} dengan ID Disbursement ${disbursementId} gagal diproses dengan kode kesalahan: ${failureCode}. Saldo Anda telah dikembalikan ke dompet Jelantah Hub Anda.`,
-            html: `
+            htmlContent: `
                 <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
                     <h2 style="color: #d32f2f;">Withdrawal Gagal</h2>
                     <p>Halo,</p>
@@ -125,17 +125,9 @@ const mailService = {
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
                     <p style="font-size: 12px; color: #777;">Ini adalah email otomatis, mohon tidak membalas email ini.</p>
                 </div>
-            `,
+            `
         };
-
-        try {
-            const info = await transporter.sendMail(mailOptions);
-            console.log(`[v] Failure email sent to ${toEmail}: ${info.messageId}`);
-            return info;
-        } catch (error) {
-            console.error(`[x] Failed to send failure email to ${toEmail}:`, error.message);
-            throw error;
-        }
+        return this.sendEmailViaBrevo(payload);
     }
 };
 
