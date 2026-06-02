@@ -2,6 +2,10 @@
   "name": "jelantah-hub-worker",
   "version": "1.0.0",
   "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
     "amqplib": "^0.10.9",
     "dotenv": "^16.6.1",
