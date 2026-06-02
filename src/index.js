@@ -21,7 +21,21 @@ async function startWorker() {
                     await mailService.sendWithdrawalSuccessEmail(email, amount, disbursementId);
                     
                     channel.ack(msg);
-                    console.log(`[v] Message acknowledged.`);
+                    console.log(`[v] Success Message acknowledged.`);
+                } else if (payload.type === 'WITHDRAWAL_APPROVED_EMAIL') {
+                    const { email, amount, disbursementId, metode_pembayaran, nomor_rekening } = payload.data;
+                    
+                    await mailService.sendWithdrawalApprovedEmail(email, amount, disbursementId, metode_pembayaran, nomor_rekening);
+                    
+                    channel.ack(msg);
+                    console.log(`[v] Approval Message acknowledged.`);
+                } else if (payload.type === 'WITHDRAWAL_FAILED_EMAIL') {
+                    const { email, amount, disbursementId, failureCode } = payload.data;
+                    
+                    await mailService.sendWithdrawalFailedEmail(email, amount, disbursementId, failureCode);
+                    
+                    channel.ack(msg);
+                    console.log(`[v] Failure Message acknowledged.`);
                 } else {
                     console.warn(`[!] Unknown message type: ${payload.type}`);
                     channel.ack(msg);
