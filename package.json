@@ -1,0 +1,10 @@
+{
+  "name": "jelantah-hub-worker",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "dependencies": {
+    "amqplib": "^0.10.9",
+    "dotenv": "^16.6.1",
+    "nodemailer": "^6.10.1"
+  }
+}
