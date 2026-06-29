@@ -43,8 +43,8 @@ async function startWorker() {
             } catch (error) {
                 console.error(`[x] Error processing message:`, error.message);
                 
-                channel.nack(msg, false, true);
-                console.log(`[!] Message nack-ed (re-queued).`);
+                channel.nack(msg, false, false);
+                console.log(`[!] Message nack-ed (discarded).`);
             }
         }
     }, {

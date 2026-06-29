@@ -3,9 +3,16 @@ require('dotenv').config();
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 const BREVO_API_KEY = process.env.BREVO_API_KEY || process.env.SMTP_PASS;
 const SENDER_EMAIL = process.env.SENDER_EMAIL || 'hubjelantah@gmail.com';
+const MOCK_EMAIL = process.env.MOCK_EMAIL === 'true';
 
 const mailService = {
     async sendEmailViaBrevo(payload) {
+        if (MOCK_EMAIL) {
+            console.log(`[MOCK] Email would be sent to: ${payload.to.map(t => t.email).join(', ')}`);
+            console.log(`[MOCK] Subject: ${payload.subject}`);
+            return { messageId: 'mock-id-' + Date.now() };
+        }
+
         try {
             const response = await fetch(BREVO_API_URL, {
                 method: 'POST',
